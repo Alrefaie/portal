@@ -1,7 +1,7 @@
 # See LICENSE file for full copyright and licensing details.
 
 {
-    'name': 'IDC',
+    'name': 'School',
     'version': '13.0.1.0.0',
     'author': 'Serpent Consulting Services Pvt. Ltd.',
     'website': 'http://www.serpentcs.com',
@@ -10,7 +10,7 @@
     'complexity': 'easy',
     'Summary': 'A Module For School Management',
     'images': ['static/description/EMS.jpg'],
-    'depends': ['crm','hr'],
+    'depends': ['hr', 'crm', 'account'],
     'data': ['security/school_security.xml',
              'security/ir.model.access.csv',
              'wizard/terminate_reason_view.xml',
@@ -25,6 +25,7 @@
              'views/report_view.xml',
              'views/identity_card.xml',
              'views/template_view.xml'],
+    'demo': ['demo/school_demo.xml'],
     'installable': True,
     'application': True
 }
