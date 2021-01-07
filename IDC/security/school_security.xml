@@ -109,7 +109,7 @@
             <field name="groups" eval="[(4, ref('group_school_teacher'))]"/>
         </record>
 
-        <!-- Rule For News Update Record As A Student & Teacher -->
+        <!-- Rule For News Update Record As A Student & Teacher 
         <record id="rule_student_news_update_record" model="ir.rule">
             <field name="name">Rule News Update Record</field>
             <field name="model_id" ref="model_student_news"/>
