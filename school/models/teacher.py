@@ -21,8 +21,8 @@ class SchoolTeacher(models.Model):
     subject_id = fields.Many2many('subject.subject', 'subject_teacher_rel',
                                   'teacher_id', 'subject_id',
                                   'Course-Subjects')
-    #school_id = fields.Many2one('school.school', "Campus",
-    #                            related="standard_id.school_id", store=True)
+    school_id = fields.Many2one('school.school', "Campus",
+                               related="standard_id.school_id", store=True)
     category_ids = fields.Many2many('hr.employee.category',
                                     'teacher_category_rel', 'emp_id',
                                     'categ_id', 'Tags')
