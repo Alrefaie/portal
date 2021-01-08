@@ -188,6 +188,8 @@
                         <field name="capacity"/>
                         <field name="total_students"/>
                         <field name="remaining_seats"/>
+                        <field name="date_start"/>
+                        <field name="date_stop"/>
                         <field name="class_room_id" options="{&quot;no_create&quot;: True}"/>
                         <field name="name" invisible="1"/>
                         <field name="total_no_subjects" invisible="1"/>
@@ -245,6 +247,8 @@
         <field name="arch" type="xml">
             <tree string="Standard Information">
                 <field name="standard_id"/>
+                <field name="date_start"/>
+                <field name="date_stop"/>
                 <field name="user_id"/>
                 <field name="division_id"/>
                 <field name="medium_id"/>

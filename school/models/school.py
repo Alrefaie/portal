@@ -9,7 +9,6 @@ from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
 from odoo.exceptions import UserError, ValidationError
 from dateutil.relativedelta import relativedelta
 
-
 EM = (r"[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$")
 
 
@@ -183,7 +182,7 @@ class StandardDivision(models.Model):
     _order = "sequence"
 
     sequence = fields.Integer('Sequence', required=True)
-    name = fields.Char('Name', required=True)
+    name = fields.Char('Division name', required=True)
     code = fields.Char('Code', required=True)
     description = fields.Text('Description')
 
@@ -196,7 +195,7 @@ class StandardStandard(models.Model):
     _order = "sequence"
 
     sequence = fields.Integer('Sequence', required=True)
-    name = fields.Char('Name', required=True)
+    name = fields.Char('Course name', required=True)
     code = fields.Char('Code', required=True)
     description = fields.Text('Description')
 
@@ -223,7 +222,7 @@ class SchoolStandard(models.Model):
         '''Compute student of done state'''
         student_obj = self.env['student.student']
         for rec in self:
-            rec.student_ids = student_obj.\
+            rec.student_ids = student_obj. \
                 search([('standard_id', '=', rec.id),
                         ('school_id', '=', rec.school_id.id),
                         ('division_id', '=', rec.division_id.id),
@@ -257,9 +256,9 @@ class SchoolStandard(models.Model):
     medium_id = fields.Many2one('standard.medium', 'Level', required=True)
     subject_ids = fields.Many2many('subject.subject', 'subject_standards_rel',
                                    'subject_id', 'standard_id', 'Subject')
-    user_id = fields.Many2one('school.teacher', 'Class Teacher')
+    user_id = fields.Many2one('school.teacher', 'Class Lecturer')
     student_ids = fields.One2many('student.student', 'standard_id',
-                                  'Student In Class',
+                                  'Attendee In Class',
                                   compute='_compute_student', store=True
                                   )
     color = fields.Integer('Color Index')
@@ -278,28 +277,39 @@ class SchoolStandard(models.Model):
                                      compute="_compute_remain_seats",
                                      store=True)
     class_room_id = fields.Many2one('class.room', 'Room Number')
+    date_start = fields.Date('Start Date', required=True,
+                             help='Starting date of class')
+    date_stop = fields.Date('End Date', required=True,
+                            help='Ending date of class')
+
+    @api.constrains('date_start', 'date_stop')
+    def _check_date(self):
+        if (self.date_stop and self.date_start and
+                self.date_stop < self.date_start):
+            raise ValidationError(_('''The start date of the class should be less than end date.'''))
 
     @api.constrains('standard_id', 'division_id')
     def check_standard_unique(self):
         """Method to check unique standard."""
         standard_search = self.env['school.standard'
-                                   ].search([('standard_id', '=',
-                                              self.standard_id.id),
-                                             ('division_id', '=',
-                                              self.division_id.id),
-                                             ('school_id', '=',
-                                              self.school_id.id),
-                                             ('id', 'not in', self.ids)])
+        ].search([('standard_id', '=',
+                   self.standard_id.id),
+                  ('division_id', '=',
+                   self.division_id.id),
+                  ('school_id', '=',
+                   self.school_id.id),
+                  ('id', 'not in', self.ids)])
         if standard_search:
             raise ValidationError(_('''Division and class should be unique!'''
                                     ))
-  
+
     def unlink(self):
         for rec in self:
             if rec.student_ids or rec.subject_ids or rec.syllabus_ids:
-                raise ValidationError(_('''You cannot delete this standard
-                because it has reference with student or subject or
-                syllabus!'''))
+                raise ValidationError(_('''You cannot delete this course
+                because it has reference with attendee !'''))
+                # or subject or
+                # syllabus!'''))
         return super(SchoolStandard, self).unlink()
 
     @api.constrains('capacity')
@@ -332,17 +342,17 @@ class SchoolSchool(models.Model):
                                  ondelete="cascade",
                                  required=True,
                                  delegate=True)
-    com_name = fields.Char('School Name', related='company_id.name',
+    com_name = fields.Char('Center Name', related='company_id.name',
                            store=True)
     code = fields.Char('Code', required=True)
     standards = fields.One2many('school.standard', 'school_id',
-                                'Standards')
+                                'Courses')
     lang = fields.Selection(_lang_get, 'Language',
                             help='''If the selected language is loaded in the
                                 system, all documents related to this partner
                                 will be printed in this language.
                                 If not, it will be English.''')
-    required_age = fields.Integer("Student Admission Age Required", default=5)
+    required_age = fields.Integer("Attendee Admission Age Required", default=5)
 
     @api.model
     def create(self, vals):
@@ -365,7 +375,7 @@ class SubjectSubject(models.Model):
     teacher_ids = fields.Many2many('school.teacher', 'subject_teacher_rel',
                                    'subject_id', 'teacher_id', 'Lecturers')
     standard_ids = fields.Many2many('standard.standard',
-                                    string='Standards')
+                                    string='Courses')
     standard_id = fields.Many2one('standard.standard', 'Class')
     is_practical = fields.Boolean('Is Practical',
                                   help='Check this if subject is practical.')
@@ -435,11 +445,11 @@ class StudentDocument(models.Model):
 
     doc_id = fields.Many2one('student.student', 'Attendee')
     file_no = fields.Char('File No', readonly="1", default=lambda obj:
-                          obj.env['ir.sequence'].
+    obj.env['ir.sequence'].
                           next_by_code('student.document'))
     submited_date = fields.Date('Submitted Date')
     doc_type = fields.Many2one('document.type', 'Document Type', required=True)
-    file_name = fields.Char('File Name',)
+    file_name = fields.Char('File Name', )
     return_date = fields.Date('Return Date')
     new_datas = fields.Binary('Attachments')
 
@@ -467,7 +477,7 @@ class StudentDescription(models.Model):
     _name = 'student.description'
     _description = "Student Description"
 
-    des_id = fields.Many2one('student.student', 'Student Ref.')
+    des_id = fields.Many2one('student.student', 'Attendee Ref.')
     name = fields.Char('Name')
     description = fields.Char('Description')
 
@@ -544,11 +554,11 @@ class StudentPreviousSchool(models.Model):
     def check_date(self):
         new_dt = fields.Date.today()
         if (self.admission_date and self.admission_date >= new_dt) or (
-            self.exit_date and self.exit_date >= new_dt):
+                self.exit_date and self.exit_date >= new_dt):
             raise ValidationError(_('''Your admission date and exit date
 should be less than current date in previous school details!'''))
         if (self.admission_date and self.exit_date) and (
-            self.admission_date > self.exit_date):
+                self.admission_date > self.exit_date):
             raise ValidationError(_(''' Admission date should be less than
 exit date in previous school!'''))
 
@@ -578,14 +588,14 @@ class StudentFamilyContact(models.Model):
             else:
                 rec.relative_name = rec.name
 
-    family_contact_id = fields.Many2one('student.student', 'Student Ref.')
+    family_contact_id = fields.Many2one('student.student', 'Attendee Ref.')
     rel_name = fields.Selection([('exist', 'Link to Existing Attendee'),
                                  ('new', 'Create New Relative Name')],
                                 'Related Student', help="Select Name",
                                 required=True)
     user_id = fields.Many2one('res.users', 'User ID', ondelete="cascade")
     stu_name = fields.Many2one('student.student', 'Existing Attendee',
-                               help="Select Student From Existing List")
+                               help="Select Attendee From Existing List")
     name = fields.Char('Relative Name')
     relation = fields.Many2one('student.relation.master', 'Relation',
                                required=True)
@@ -666,7 +676,7 @@ current date!'''))
         mail_server_ids = obj_mail_server.search([])
         if not mail_server_ids:
             raise UserError(_('Mail Error'),
-                             _('''No mail outgoing mail server \
+                            _('''No mail outgoing mail server \
 specified!'''))
         mail_server_record = mail_server_ids[0]
         email_list = []
@@ -677,7 +687,7 @@ specified!'''))
                               if news_user.email]
                 if not email_list:
                     raise UserError(_('User Email Configuration!'),
-                                     _("Email not found in users !"))
+                                    _("Email not found in users !"))
             # Check email is defined in user created from employee
             else:
                 for employee in emp_obj.search([]):
@@ -687,7 +697,7 @@ specified!'''))
                         email_list.append(employee.user_id.email)
                 if not email_list:
                     raise UserError(_('Email Configuration!'),
-                                     _("Email not defined!"))
+                                    _("Email not defined!"))
             news_date = news.date
             # Add company name while sending email
             company = user.company_id.name or ''
@@ -701,7 +711,7 @@ specified!'''))
             # Check if mail of outgoing server configured
             if not smtp_user:
                 raise UserError(_('Email Configuration '),
-                                 _("Kindly,Configure Outgoing Mail Server!"))
+                                _("Kindly,Configure Outgoing Mail Server!"))
             notification = 'Notification for news update.'
             # Configure email
             message = obj_mail_server.build_email(email_from=smtp_user,
@@ -729,7 +739,7 @@ class StudentReminder(models.Model):
         return self.env['student.student'].search([('user_id', '=',
                                                     self._uid)]).id
 
-    stu_id = fields.Many2one('student.student', 'Student Name', required=True,
+    stu_id = fields.Many2one('student.student', 'Attendee Name', required=True,
                              default=check_user)
     name = fields.Char('Title')
     date = fields.Date('Date')
@@ -760,9 +770,9 @@ class Report(models.Model):
     _inherit = "ir.actions.report"
 
     def render_template(self, template, values=None):
-        student_id = self.env['student.student'].\
+        student_id = self.env['student.student']. \
             browse(self._context.get('student_id', False))
         if student_id and student_id.state == 'draft':
             raise ValidationError(_('''You cannot print report for
-                student in unconfirm state!'''))
+                attendee in unconfirm state!'''))
         return super(Report, self).render_template(template, values)

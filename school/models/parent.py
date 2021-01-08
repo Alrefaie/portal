@@ -45,7 +45,7 @@ class SchoolParent(models.Model):
                                 'standard_standard_parent_rel',
                                 'standard_parent_id', 'standard_id',
                                 'Academic Standard')
-    teacher_id = fields.Many2one('school.teacher', 'Teacher',
+    teacher_id = fields.Many2one('school.teacher', 'Lecturer',
                                  related="standard_id.user_id", store=True)
 
     @api.model
