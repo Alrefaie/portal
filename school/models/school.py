@@ -251,12 +251,10 @@ class SchoolStandard(models.Model):
         for rec in self:
             rec.remaining_seats = rec.capacity - rec.total_students
 
-    school_id = fields.Many2one('school.school', 'School', required=True)
-    standard_id = fields.Many2one('standard.standard', 'Standard',
-                                  required=True)
-    division_id = fields.Many2one('standard.division', 'Division',
-                                  required=True)
-    medium_id = fields.Many2one('standard.medium', 'Medium', required=True)
+    school_id = fields.Many2one('school.school', 'Center', required=True)
+    standard_id = fields.Many2one('standard.standard', 'Course', required=True)
+    division_id = fields.Many2one('standard.division', 'Division', required=True)
+    medium_id = fields.Many2one('standard.medium', 'Level', required=True)
     subject_ids = fields.Many2many('subject.subject', 'subject_standards_rel',
                                    'subject_id', 'standard_id', 'Subject')
     user_id = fields.Many2one('school.teacher', 'Class Teacher')
@@ -273,7 +271,7 @@ class SchoolStandard(models.Model):
                                        compute="_compute_subject")
     name = fields.Char('Name')
     capacity = fields.Integer("Total Seats")
-    total_students = fields.Integer("Total Students",
+    total_students = fields.Integer("Total ِAttendees",
                                     compute="_compute_total_student",
                                     store=True)
     remaining_seats = fields.Integer("Available Seats",
@@ -321,7 +319,7 @@ class SchoolSchool(models.Model):
     ''' Defining School Information'''
 
     _name = 'school.school'
-    _description = 'School Information'
+    _description = 'Center Information'
     _rec_name = "com_name"
 
     @api.model
@@ -365,7 +363,7 @@ class SubjectSubject(models.Model):
     minimum_marks = fields.Integer("Minimum marks")
     weightage = fields.Integer("WeightAge")
     teacher_ids = fields.Many2many('school.teacher', 'subject_teacher_rel',
-                                   'subject_id', 'teacher_id', 'Teachers')
+                                   'subject_id', 'teacher_id', 'Lecturers')
     standard_ids = fields.Many2many('standard.standard',
                                     string='Standards')
     standard_id = fields.Many2one('standard.standard', 'Class')
@@ -374,7 +372,7 @@ class SubjectSubject(models.Model):
     elective_id = fields.Many2one('subject.elective')
     student_ids = fields.Many2many('student.student',
                                    'elective_subject_student_rel',
-                                   'subject_id', 'student_id', 'Students')
+                                   'subject_id', 'student_id', 'Attendees')
 
 
 class SubjectSyllabus(models.Model):
@@ -383,7 +381,7 @@ class SubjectSyllabus(models.Model):
     _description = "Syllabus"
     _rec_name = "subject_id"
 
-    standard_id = fields.Many2one('school.standard', 'Standard')
+    standard_id = fields.Many2one('school.standard', 'Course')
     subject_id = fields.Many2one('subject.subject', 'Subject')
     syllabus_doc = fields.Binary("Syllabus Doc",
                                  help="Attach syllabus related to Subject")
@@ -414,7 +412,7 @@ class StudentAward(models.Model):
     _name = 'student.award'
     _description = "Student Awards"
 
-    award_list_id = fields.Many2one('student.student', 'Student')
+    award_list_id = fields.Many2one('student.student', 'Attendee')
     name = fields.Char('Award Name')
     description = fields.Char('Description')
 
@@ -435,7 +433,7 @@ class StudentDocument(models.Model):
     _description = "Student Document"
     _rec_name = "doc_type"
 
-    doc_id = fields.Many2one('student.student', 'Student')
+    doc_id = fields.Many2one('student.student', 'Attendee')
     file_no = fields.Char('File No', readonly="1", default=lambda obj:
                           obj.env['ir.sequence'].
                           next_by_code('student.document'))
@@ -460,9 +458,7 @@ class DocumentType(models.Model):
     @api.model
     def create(self, vals):
         if vals.get('seq_no', _('New')) == _('New'):
-            vals['seq_no'] = self.env['ir.sequence'
-                                      ].next_by_code('document.type'
-                                                     ) or _('New')
+            vals['seq_no'] = self.env['ir.sequence'].next_by_code('document.type') or _('New')
         return super(DocumentType, self).create(vals)
 
 
@@ -482,10 +478,10 @@ class StudentDescipline(models.Model):
     _name = 'student.descipline'
     _description = "Student Discipline"
 
-    student_id = fields.Many2one('student.student', 'Student')
-    teacher_id = fields.Many2one('school.teacher', 'Teacher')
+    student_id = fields.Many2one('student.student', 'Attendee')
+    teacher_id = fields.Many2one('school.teacher', 'Lecturer')
     date = fields.Date('Date')
-    class_id = fields.Many2one('standard.standard', 'Class')
+    class_id = fields.Many2one('standard.standard', 'Course')
     note = fields.Text('Note')
     action_taken = fields.Text('Action Taken')
 
@@ -496,10 +492,10 @@ class StudentHistory(models.Model):
     _name = "student.history"
     _description = "Student History"
 
-    student_id = fields.Many2one('student.student', 'Student')
+    student_id = fields.Many2one('student.student', 'Attendee')
     academice_year_id = fields.Many2one('academic.year', 'Academic Year',
                                         )
-    standard_id = fields.Many2one('school.standard', 'Standard')
+    standard_id = fields.Many2one('school.standard', 'Course')
     percentage = fields.Float("Percentage", readonly=True)
     result = fields.Char('Result', readonly=True)
 
@@ -510,7 +506,7 @@ class StudentCertificate(models.Model):
     _name = "student.certificate"
     _description = "Student Certificate"
 
-    student_id = fields.Many2one('student.student', 'Student')
+    student_id = fields.Many2one('student.student', 'Attendee')
     description = fields.Char('Description')
     certi = fields.Binary('Certificate', required=True)
 
@@ -521,7 +517,7 @@ class StudentReference(models.Model):
     _name = "student.reference"
     _description = "Student Reference"
 
-    reference_id = fields.Many2one('student.student', 'Student')
+    reference_id = fields.Many2one('student.student', 'Attendee')
     name = fields.Char('First Name', required=True)
     middle = fields.Char('Middle Name', required=True)
     last = fields.Char('Surname', required=True)
@@ -536,7 +532,7 @@ class StudentPreviousSchool(models.Model):
     _name = "student.previous.school"
     _description = "Student Previous School"
 
-    previous_school_id = fields.Many2one('student.student', 'Student')
+    previous_school_id = fields.Many2one('student.student', 'Attendee')
     name = fields.Char('Name', required=True)
     registration_no = fields.Char('Registration No.', required=True)
     admission_date = fields.Date('Admission Date')
@@ -583,12 +579,12 @@ class StudentFamilyContact(models.Model):
                 rec.relative_name = rec.name
 
     family_contact_id = fields.Many2one('student.student', 'Student Ref.')
-    rel_name = fields.Selection([('exist', 'Link to Existing Student'),
+    rel_name = fields.Selection([('exist', 'Link to Existing Attendee'),
                                  ('new', 'Create New Relative Name')],
                                 'Related Student', help="Select Name",
                                 required=True)
     user_id = fields.Many2one('res.users', 'User ID', ondelete="cascade")
-    stu_name = fields.Many2one('student.student', 'Existing Student',
+    stu_name = fields.Many2one('student.student', 'Existing Attendee',
                                help="Select Student From Existing List")
     name = fields.Char('Relative Name')
     relation = fields.Many2one('student.relation.master', 'Relation',

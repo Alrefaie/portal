@@ -151,14 +151,14 @@ defined!Please contact to Administator!'''
                                      states={'done': [('readonly', True)]})
     user_id = fields.Many2one('res.users', 'User ID', ondelete="cascade",
                               required=True, delegate=True)
-    student_name = fields.Char('Student Name', related='user_id.name',
+    student_name = fields.Char('Attendee Name', related='user_id.name',
                                store=True, readonly=True)
     pid = fields.Char('Student ID', required=True,
                       default=lambda self: _('New'),
                       help='Personal IDentification Number')
     reg_code = fields.Char('Registration Code',
-                           help='Student Registration Code')
-    student_code = fields.Char('Student Code')
+                           help='Attendee Registration Code')
+    student_code = fields.Char('Attendee Code')
     contact_phone = fields.Char('Phone no.')
     contact_mobile = fields.Char('Mobile no')
     roll_no = fields.Integer('Roll No.', readonly=True)
@@ -208,7 +208,7 @@ defined!Please contact to Administator!'''
     dermatological = fields.Boolean('Dermatological')
     blood_pressure = fields.Boolean('Blood Pressure')
     remark = fields.Text('Remark', states={'done': [('readonly', True)]})
-    school_id = fields.Many2one('school.school', 'School',
+    school_id = fields.Many2one('school.school', 'Center',
                                 states={'done': [('readonly', True)]})
     state = fields.Selection([('draft', 'Draft'),
                               ('done', 'Done'),
@@ -293,7 +293,7 @@ defined!Please contact to Administator!'''
             if not school_standard_obj.search(domain):
                 raise UserError(_('Warning'),
                                  _('''The standard is not defined in
-                                     school'''))
+                                     center'''))
             # Assign group to student
             rec.user_id.write({'groups_id': [(6, 0, [emp_group.id,
                                                      student_group.id])]})
