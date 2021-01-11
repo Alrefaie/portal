@@ -33,7 +33,7 @@ class OpFaculty(models.Model):
     first_name = fields.Char('First Name', size=128, translate=True)
     middle_name = fields.Char('Middle Name', size=128)
     last_name = fields.Char('Last Name', size=128, required=True)
-    birth_date = fields.Date('Birth Date', required=True)
+    birth_date = fields.Date('Birth Date', required=False)
     blood_group = fields.Selection([
         ('A+', 'A+ve'),
         ('B+', 'B+ve'),
