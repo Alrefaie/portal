@@ -346,7 +346,7 @@ class Meeting(models.Model):
             }
 
     @api.model
-    def create(self, values):
+    def create(self, values, **kwargs):
         """
          Special context keys :
           - zoom_meeting_create,zoom_meet_unlink,zoom_create are restrict to access zoom api
