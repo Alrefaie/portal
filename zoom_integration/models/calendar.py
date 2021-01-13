@@ -364,7 +364,7 @@ class Meeting(models.Model):
                     # let UserErrors (messages) bubble up
                     raise e
                 except Exception as e:
-                    raise UserError(_('Zoom API Exception! \n %s') % e)
+                    raise UserError(_('Zoom API Exception!1 \n %s') % e)
                 res.start_url = data_dict['start_url']
                 res.join_url = data_dict['join_url']
                 res.meeting_id = data_dict['meeting_id']
@@ -692,7 +692,7 @@ class Meeting(models.Model):
                         values.pop('external_participants')
                     self.zoom_write_update(http_status, occurrence_list, values)
                 except Exception as e:
-                    raise UserError(_('Zoom API Exception! \n %s') % e)
+                    raise UserError(_('Zoom API Exception!2 \n %s') % e)
 
                 recurrency_fields = self._get_recurrent_fields()
                 recurrency_change=False
@@ -1087,7 +1087,7 @@ class Meeting(models.Model):
                         client.meeting.delete(id=meeting.meeting_id)
 
         except Exception as e:
-            raise UserError(_('Zoom API Exception! \n %s') % e)
+            raise UserError(_('Zoom API Exception!3 \n %s') % e)
 
     def cancel_meeting(self):
         self.unlink()
@@ -1221,7 +1221,7 @@ class Meeting(models.Model):
                     client.meeting.delete(id=meeting.meeting_id)
 
             except Exception as e:
-                raise UserError(_('Zoom API Exception! \n %s') % e)
+                raise UserError(_('Zoom API Exception!4 \n %s') % e)
             meeting.with_context(zoom_write=True).write({'meeting_id': '', 'join_url': '',
                                                       'start_url': '', 'zoom_occurrence_list': '',
                                                       'host_id': '',
@@ -1336,7 +1336,7 @@ class Meeting(models.Model):
                                 client.meeting.delete(id=meeting_origin.meeting_id,occurrence_id=occurrence_id)
 
                         except Exception as e:
-                            raise UserError(_('Zoom API Exception! \n %s') % e)
+                            raise UserError(_('Zoom API Exception!5 \n %s') % e)
                 meeting_origin.with_context(zoom_write=True).write({'zoom_occurrence_list':zoom_occurrence_list})
             if data.get('id'):
                 del data['id']
