@@ -219,7 +219,7 @@ class SurveyUserInputLine(models.Model):
         ('free_text', 'Free Text'),
         ('suggestion', 'Suggestion')], string='Answer Type')
     value_text = fields.Char('Text answer')
-    value_mobile = fields.Float('Mobile')
+    value_mobile = fields.Char('Mobile')
     value_number = fields.Float('Numerical answer')
     value_date = fields.Date('Date answer')
     value_datetime = fields.Datetime('Datetime answer')
@@ -248,7 +248,7 @@ class SurveyUserInputLine(models.Model):
         for uil in self:
             fields_type = {
                 'text': bool(uil.value_text),
-                'mobile': (bool(uil.value_mobile) or uil.value_mobile == 0),
+                'mobile': bool(uil.value_mobile),
                 'number': (bool(uil.value_number) or uil.value_number == 0),
                 'date': bool(uil.value_date),
                 'free_text': bool(uil.value_free_text),
@@ -341,7 +341,7 @@ class SurveyUserInputLine(models.Model):
             'skipped': False
         }
         if answer_tag in post and post[answer_tag].strip():
-            vals.update({'answer_type': 'mboile', 'value_mobile': float(post[answer_tag])})
+            vals.update({'answer_type': 'mobile', 'value_mobile': post[answer_tag]})
         else:
             vals.update({'answer_type': None, 'skipped': True})
         old_uil = self.search([
