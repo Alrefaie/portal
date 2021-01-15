@@ -601,7 +601,7 @@ class Survey(models.Model):
             result_summary = {'answers': answers, 'rows': rows, 'result': res, 'comments': comments}
 
         # Calculate and return statistics for free_text, textbox, date
-        if question.question_type in ['free_text', 'textbox', 'date', 'datetime']:
+        if question.question_type in ['free_text', 'textbox', 'date', 'datetime','mobile']:
             result_summary = []
             for input_line in input_lines:
                 if not(current_filters) or input_line.user_input_id.id in current_filters:
@@ -621,15 +621,6 @@ class Survey(models.Model):
                                        'min': round(min(all_inputs), 2),
                                        'sum': sum(all_inputs),
                                        'most_common': Counter(all_inputs).most_common(5)})
-
-        # Calculate and return statistics for mobile
-        if question.question_type == 'mobile':
-            result_summary = {'input_lines': []}
-            all_inputs = []
-            for input_line in input_lines:
-                if not(current_filters) or input_line.user_input_id.id in current_filters:
-                    all_inputs.append(input_line.value_mobile)
-                    result_summary['input_lines'].append(input_line)
         return result_summary
 
     @api.model
