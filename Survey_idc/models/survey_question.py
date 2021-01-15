@@ -85,13 +85,13 @@ class SurveyQuestion(models.Model):
     question_type = fields.Selection([
         ('free_text', 'Multiple Lines Text Box'),
         ('textbox', 'Single Line Text Box'),
-        ('mobile', 'Mobile'),
         ('numerical_box', 'Numerical Value'),
         ('date', 'Date'),
         ('datetime', 'Datetime'),
         ('simple_choice', 'Multiple choice: only one answer'),
         ('multiple_choice', 'Multiple choice: multiple answers allowed'),
-        ('matrix', 'Matrix')], string='Question Type')
+        ('matrix', 'Matrix'),
+        ('mobile', 'Mobile')], string='Question Type')
     # simple choice / multiple choice / matrix
     labels_ids = fields.One2many(
         'survey.label', 'question_id', string='Types of answers', copy=True,
@@ -209,20 +209,6 @@ class SurveyQuestion(models.Model):
         if answer and self.validation_required:
             if not (self.validation_length_min <= len(answer) <= self.validation_length_max):
                 errors.update({answer_tag: self.validation_error_msg})
-        return errors
-
-    def validate_mobile(self, post, answer_tag):
-        self.ensure_one()
-        errors = {}
-        answer = post[answer_tag].strip()
-        # Empty answer to mandatory question
-        if self.constr_mandatory and not answer:
-            errors.update({answer_tag: self.constr_error_msg})
-        # Checks if user input is a number
-        if answer and self.validation_mobile:
-            if not mobile_validator.match(answer):
-                errors.update({answer_tag: _('This answer must be a mobile number')})
-        # Answer validation (if properly defined)
         return errors
 
     def validate_numerical_box(self, post, answer_tag):
@@ -351,6 +337,20 @@ class SurveyQuestion(models.Model):
             # Validate that each line has been answered
             if answer_number != lines_number:
                 errors.update({answer_tag: self.constr_error_msg})
+        return errors
+    
+    def validate_mobile(self, post, answer_tag):
+        self.ensure_one()
+        errors = {}
+        answer = post[answer_tag].strip()
+        # Empty answer to mandatory question
+        if self.constr_mandatory and not answer:
+            errors.update({answer_tag: self.constr_error_msg})
+        # Checks if user input is a number
+        if answer and self.validation_mobile:
+            if not mobile_validator.match(answer):
+                errors.update({answer_tag: _('This answer must be a mobile number')})
+        # Answer validation (if properly defined)
         return errors
 
     @api.depends('survey_id.question_and_page_ids.is_page', 'survey_id.question_and_page_ids.sequence')
