@@ -333,8 +333,6 @@ class Survey(http.Controller):
                     # here come comment answers for matrices, simple choice and multiple choice
                     answer_tag = "%s_%s" % (answer_tag, 'comment')
                     answer_value = answer.value_text
-                elif answer.answer_type == 'mobile':
-                    answer_value = str(answer.value_mobile)
                 elif answer.answer_type == 'number':
                     answer_value = str(answer.value_number)
                 elif answer.answer_type == 'date':
@@ -346,6 +344,8 @@ class Survey(http.Controller):
                 elif answer.answer_type == 'suggestion' and answer.value_suggested_row:
                     answer_tag = "%s_%s" % (answer_tag, answer.value_suggested_row.id)
                     answer_value = answer.value_suggested.id
+                elif answer.answer_type == 'text':
+                    answer_value = str(answer.value_mobile)
                 if answer_value:
                     ret.setdefault(answer_tag, []).append(answer_value)
                 else:
