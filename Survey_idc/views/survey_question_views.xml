@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-<data>
     <!-- QUESTIONS -->
     <record model="ir.ui.view" id="survey_question_form">
         <field name="name">Form view for survey question</field>
@@ -256,5 +255,4 @@
         action="action_survey_label_form"
         parent="survey_menu_questions"
         sequence="3"/>
-</data>
 </odoo>
