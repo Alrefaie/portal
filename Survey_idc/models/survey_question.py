@@ -119,7 +119,7 @@ class SurveyQuestion(models.Model):
     # Validation
     validation_required = fields.Boolean('Validate entry')
     validation_email = fields.Boolean('Input must be an email')
-    validation_mobile = fields.Float('Input must be a mobile number')
+    validation_mobile = fields.Char('Input must be a mobile number')
     validation_length_min = fields.Integer('Minimum Text Length')
     validation_length_max = fields.Integer('Maximum Text Length')
     validation_min_float_value = fields.Float('Minimum value')
@@ -218,20 +218,11 @@ class SurveyQuestion(models.Model):
         # Empty answer to mandatory question
         if self.constr_mandatory and not answer:
             errors.update({answer_tag: self.constr_error_msg})
-        if answer:
-            try:
-                floatanswer = float(answer)
-            except ValueError:
-                errors.update({answer_tag: _('This is not a number')})
         # Checks if user input is a number
         if answer and self.validation_mobile:
             if not mobile_validator.match(answer):
                 errors.update({answer_tag: _('This answer must be a mobile number')})
         # Answer validation (if properly defined)
-        if answer and self.validation_required:
-            # Answer is not in the right range
-            if not (self.validation_min_float_value <= floatanswer <= self.validation_max_float_value):
-                errors.update({answer_tag: self.validation_error_msg})
         return errors
 
     def validate_numerical_box(self, post, answer_tag):
