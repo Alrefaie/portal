@@ -119,7 +119,7 @@ class SurveyQuestion(models.Model):
     # Validation
     validation_required = fields.Boolean('Validate entry')
     validation_email = fields.Boolean('Input must be an email')
-    validation_mobile = fields.Char('Input must be a mobile number')
+    validation_mobile = fields.Boolean('Input must be a mobile number')
     validation_length_min = fields.Integer('Minimum Text Length')
     validation_length_max = fields.Integer('Maximum Text Length')
     validation_min_float_value = fields.Float('Minimum value')
