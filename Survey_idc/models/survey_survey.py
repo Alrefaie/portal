@@ -630,12 +630,6 @@ class Survey(models.Model):
                 if not(current_filters) or input_line.user_input_id.id in current_filters:
                     all_inputs.append(input_line.value_mobile)
                     result_summary['input_lines'].append(input_line)
-            if all_inputs:
-                result_summary.update({'average': round(sum(all_inputs) / len(all_inputs), 2),
-                                       'max': round(max(all_inputs), 2),
-                                       'min': round(min(all_inputs), 2),
-                                       'sum': sum(all_inputs),
-                                       'most_common': Counter(all_inputs).most_common(5)})
         return result_summary
 
     @api.model
