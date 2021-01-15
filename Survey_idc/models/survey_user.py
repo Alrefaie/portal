@@ -212,7 +212,7 @@ class SurveyUserInputLine(models.Model):
     skipped = fields.Boolean('Skipped')
     answer_type = fields.Selection([
         ('text', 'Text'),
-        ('mobile', 'Mobile'),
+        ('number', 'Mobile'),
         ('number', 'Number'),
         ('date', 'Date'),
         ('datetime', 'Datetime'),
@@ -248,7 +248,7 @@ class SurveyUserInputLine(models.Model):
         for uil in self:
             fields_type = {
                 'text': bool(uil.value_text),
-                'mobile': (bool(uil.value_mobile) or uil.value_mobile == 0),
+                'number': (bool(uil.value_mobile) or uil.value_mobile == 0),
                 'number': (bool(uil.value_number) or uil.value_number == 0),
                 'date': bool(uil.value_date),
                 'free_text': bool(uil.value_free_text),
