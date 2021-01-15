@@ -344,7 +344,7 @@ class Survey(http.Controller):
                 elif answer.answer_type == 'suggestion' and answer.value_suggested_row:
                     answer_tag = "%s_%s" % (answer_tag, answer.value_suggested_row.id)
                     answer_value = answer.value_suggested.id
-                elif answer.answer_type == 'text':
+                elif answer.answer_type == 'text' and answer.question_id.question_type == 'mobile':
                     answer_value = str(answer.value_mobile)
                 if answer_value:
                     ret.setdefault(answer_tag, []).append(answer_value)
