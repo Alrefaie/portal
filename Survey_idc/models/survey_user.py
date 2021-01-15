@@ -212,7 +212,7 @@ class SurveyUserInputLine(models.Model):
     skipped = fields.Boolean('Skipped')
     answer_type = fields.Selection([
         ('text', 'Text'),
-        ('mobile', 'Number'),
+        ('mobile', 'Mobile'),
         ('number', 'Number'),
         ('date', 'Date'),
         ('datetime', 'Datetime'),
@@ -248,6 +248,7 @@ class SurveyUserInputLine(models.Model):
         for uil in self:
             fields_type = {
                 'text': bool(uil.value_text),
+                'mobile': (bool(uil.value_mobile) or uil.value_mobile == 0),
                 'number': (bool(uil.value_number) or uil.value_number == 0),
                 'date': bool(uil.value_date),
                 'free_text': bool(uil.value_free_text),
@@ -340,7 +341,7 @@ class SurveyUserInputLine(models.Model):
             'skipped': False
         }
         if answer_tag in post and post[answer_tag].strip():
-            vals.update({'answer_type': 'number', 'value_mobile': float(post[answer_tag])})
+            vals.update({'answer_type': 'mobile', 'value_mobile': float(post[answer_tag])})
         else:
             vals.update({'answer_type': None, 'skipped': True})
         old_uil = self.search([
