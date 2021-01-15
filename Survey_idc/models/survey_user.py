@@ -212,12 +212,12 @@ class SurveyUserInputLine(models.Model):
     skipped = fields.Boolean('Skipped')
     answer_type = fields.Selection([
         ('text', 'Text'),
-        ('mobile', 'Mobile'),
         ('number', 'Number'),
         ('date', 'Date'),
         ('datetime', 'Datetime'),
         ('free_text', 'Free Text'),
-        ('suggestion', 'Suggestion')], string='Answer Type')
+        ('suggestion', 'Suggestion'),
+        ('text', 'Mobile'),], string='Answer Type')
     value_text = fields.Char('Text answer')
     value_mobile = fields.Char('Mobile')
     value_number = fields.Float('Numerical answer')
@@ -248,11 +248,11 @@ class SurveyUserInputLine(models.Model):
         for uil in self:
             fields_type = {
                 'text': bool(uil.value_text),
-                'mobile': bool(uil.value_mobile),
                 'number': (bool(uil.value_number) or uil.value_number == 0),
                 'date': bool(uil.value_date),
                 'free_text': bool(uil.value_free_text),
-                'suggestion': bool(uil.value_suggested)
+                'suggestion': bool(uil.value_suggested),
+                'text': bool(uil.value_mobile),
             }
             if not fields_type.get(uil.answer_type, True):
                 raise ValidationError(_('The answer must be in the right type'))
@@ -319,29 +319,6 @@ class SurveyUserInputLine(models.Model):
         }
         if answer_tag in post and post[answer_tag].strip():
             vals.update({'answer_type': 'text', 'value_text': post[answer_tag]})
-        else:
-            vals.update({'answer_type': None, 'skipped': True})
-        old_uil = self.search([
-            ('user_input_id', '=', user_input_id),
-            ('survey_id', '=', question.survey_id.id),
-            ('question_id', '=', question.id)
-        ])
-        if old_uil:
-            old_uil.write(vals)
-        else:
-            old_uil.create(vals)
-        return True
-
-    @api.model
-    def save_line_mobile(self, user_input_id, question, post, answer_tag):
-        vals = {
-            'user_input_id': user_input_id,
-            'question_id': question.id,
-            'survey_id': question.survey_id.id,
-            'skipped': False
-        }
-        if answer_tag in post and post[answer_tag].strip():
-            vals.update({'answer_type': 'mobile', 'value_mobile': post[answer_tag]})
         else:
             vals.update({'answer_type': None, 'skipped': True})
         old_uil = self.search([
@@ -532,3 +509,27 @@ class SurveyUserInputLine(models.Model):
             vals.update({'answer_type': None, 'skipped': True})
             self.create(vals)
         return True
+    
+    @api.model
+    def save_line_mobile(self, user_input_id, question, post, answer_tag):
+        vals = {
+            'user_input_id': user_input_id,
+            'question_id': question.id,
+            'survey_id': question.survey_id.id,
+            'skipped': False
+        }
+        if answer_tag in post and post[answer_tag].strip():
+            vals.update({'answer_type': 'text', 'value_mobile': post[answer_tag]})
+        else:
+            vals.update({'answer_type': None, 'skipped': True})
+        old_uil = self.search([
+            ('user_input_id', '=', user_input_id),
+            ('survey_id', '=', question.survey_id.id),
+            ('question_id', '=', question.id)
+        ])
+        if old_uil:
+            old_uil.write(vals)
+        else:
+            old_uil.create(vals)
+        return True
+
