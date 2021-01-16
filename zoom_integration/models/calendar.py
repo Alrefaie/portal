@@ -15,10 +15,13 @@ import babel.dates
 from odoo import tools
 from odoo.tools.misc import get_lang
 
+
 def is_calendar_id(record_id):
     return len(str(record_id).split('-')) != 1
 
+
 VIRTUALID_DATETIME_FORMAT = "%Y%m%d%H%M%S"
+
 
 def calendar_id2real_id(calendar_id=None, with_date=False):
     """ Convert a "virtual/recurring event id" (type string) into a real event id (type int).
@@ -32,7 +35,8 @@ def calendar_id2real_id(calendar_id=None, with_date=False):
         if len(res) == 2:
             real_id = res[0]
             if with_date:
-                real_date = time.strftime(DEFAULT_SERVER_DATETIME_FORMAT, time.strptime(res[1], VIRTUALID_DATETIME_FORMAT))
+                real_date = time.strftime(DEFAULT_SERVER_DATETIME_FORMAT,
+                                          time.strptime(res[1], VIRTUALID_DATETIME_FORMAT))
                 start = datetime.datetime.strptime(real_date, DEFAULT_SERVER_DATETIME_FORMAT)
                 end = start + timedelta(hours=with_date)
                 return (int(real_id), real_date, end.strftime(DEFAULT_SERVER_DATETIME_FORMAT))
@@ -62,16 +66,16 @@ class Meeting(models.Model):
     mute_participants_upon_entry = fields.Boolean('Mute participants upon entry')
     enable_waiting_room = fields.Boolean("Enable waiting room")
     auto_recording = fields.Boolean('Record the meeting automatically on the local computer')
-    join_url = fields.Char("Join URL",default='')
+    join_url = fields.Char("Join URL", default='')
     start_url = fields.Char("Start URL")
     meeting_id = fields.Char('Meeting ID')
-    host_id=fields.Char('Host ID')
+    host_id = fields.Char('Host ID')
     external_participants = fields.One2many('zoom_meeting.external_user', 'event_id', string='External Participant')
-    visible_factor = fields.Boolean("Visibility Check",compute='get_visibility_check')
+    visible_factor = fields.Boolean("Visibility Check", compute='get_visibility_check')
     update_single_instance = fields.Boolean('Update single instance')
     user_visibility = fields.Boolean('User visibility', compute='_get_user_visibility')
-    join_visible_factor = fields.Boolean("Join Meeting Visibility Check",compute='get_join_visibility_check')
-    todays_meeting = fields.Html(compute='_compute_todays_calendar_events',string = 'Meeting')
+    join_visible_factor = fields.Boolean("Join Meeting Visibility Check", compute='get_join_visibility_check')
+    todays_meeting = fields.Html(compute='_compute_todays_calendar_events', string='Meeting')
     end_type = fields.Selection([
         ('count', 'Number of occurrences'),
         ('end_date', 'End date')
@@ -81,54 +85,58 @@ class Meeting(models.Model):
     def _onchange_start_datetime_meeting(self):
         self._compute_todays_calendar_events()
 
-
     def _compute_todays_calendar_events(self):
         self.todays_meeting = ''
         if not self.create_uid or (self.create_uid and self.create_uid.id == self.env.user.id):
             if not self.recurrency and self.start_datetime and self.is_zoom_meeting:
                 local_date_time = self._datetime_localize(self.start_datetime)
-                local_time =datetime.strptime(local_date_time, "%Y-%m-%d %H:%M:%S")
+                local_time = datetime.strptime(local_date_time, "%Y-%m-%d %H:%M:%S")
                 start_date = local_time.strftime("%Y-%m-%d").strip() + " 00:00:00"
                 tz = pytz.timezone(self.env.user.tz)
                 start_date_strip = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
                 start_tz_localize = tz.localize(start_date_strip, is_dst=None)
                 utc_from_date = start_tz_localize.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
-                meet_end_date =local_time.date() + timedelta(days=1)
+                meet_end_date = local_time.date() + timedelta(days=1)
                 end_date = meet_end_date.strftime("%Y-%m-%d").strip() + " 00:00:00"
                 en_date_strip = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
                 end_tz_localize = tz.localize(en_date_strip, is_dst=None)
                 utc_end_date = end_tz_localize.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
-                todays_meeting = self.env['calendar.event'].search([('id','!=',self.id),('is_zoom_meeting','=',True),('create_uid','=',self.env.user.id),('recurrency','!=',True),('start_datetime','>=',utc_from_date),('start_datetime','<',utc_end_date)])
+                todays_meeting = self.env['calendar.event'].search(
+                    [('id', '!=', self.id), ('is_zoom_meeting', '=', True), ('create_uid', '=', self.env.user.id),
+                     ('recurrency', '!=', True), ('start_datetime', '>=', utc_from_date),
+                     ('start_datetime', '<', utc_end_date)])
                 if todays_meeting:
-                    todays_meeting_description='<font size=4 color=red><b>Normal Zoom Meetings created for the day</b></font>'+"<br/>"+"<br/>"
+                    todays_meeting_description = '<font size=4 color=red><b>Normal Zoom Meetings created for the day</b></font>' + "<br/>" + "<br/>"
                     for today_meeting in todays_meeting:
-                        meeting_date=self._datetime_localize_user_format(today_meeting.start_datetime)
-                        description=''
-                        description+= "<b>Meeting Subject: </b>" + today_meeting.name + "<br/>" + "<b>Time: </b>" + str(meeting_date) +"<br/>" + "<b>Duration: </b>" + str(today_meeting.duration) +"<br/>"+"<br/>"
-                        todays_meeting_description+=description
-                    self.todays_meeting =  todays_meeting_description
+                        meeting_date = self._datetime_localize_user_format(today_meeting.start_datetime)
+                        description = ''
+                        description += "<b>Meeting Subject: </b>" + today_meeting.name + "<br/>" + "<b>Time: </b>" + str(
+                            meeting_date) + "<br/>" + "<b>Duration: </b>" + str(
+                            today_meeting.duration) + "<br/>" + "<br/>"
+                        todays_meeting_description += description
+                    self.todays_meeting = todays_meeting_description
                 else:
-                    self.todays_meeting =''
+                    self.todays_meeting = ''
             else:
                 self.todays_meeting = ''
 
     def get_visibility_check(self):
         for record in self:
             record.visible_factor = False
-            if record.is_zoom_meeting !=True and self.id != False :
+            if record.is_zoom_meeting != True and self.id != False:
                 if record.allday == False:
                     record.visible_factor = True
 
     def get_join_visibility_check(self):
         for record in self:
             record.join_visible_factor = True
-            emails=[]
+            emails = []
             if record.attendee_ids:
                 emails = record.attendee_ids.mapped('email')
             if record.external_participants:
                 ext_emails = record.external_participants.mapped('email')
                 emails.extend(ext_emails)
-            if self.env.user.email in emails or self.env.user.id ==self.env.user.company_id.zoom_admin_user_id.id or self.env.user.id == record.create_uid.id:
+            if self.env.user.email in emails or self.env.user.id == self.env.user.company_id.zoom_admin_user_id.id or self.env.user.id == record.create_uid.id:
                 record.join_visible_factor = False
 
     def _get_user_visibility(self):
@@ -139,7 +147,6 @@ class Meeting(models.Model):
             if current_user == record.create_uid.id:
                 record.user_visibility = True
 
-
     @api.constrains('event_tz')
     def _check_time_zone(self):
         """
@@ -147,42 +154,67 @@ class Meeting(models.Model):
         """
         for meeting in self:
             if meeting.is_zoom_meeting == True and meeting.event_tz:
-               if meeting.event_tz not in ['Pacific/Midway','Pacific/Pago_Pago','Pacific/Honolulu','America/Anchorage','America/Vancouver',
-                                       'America/Los_Angeles','America/Tijuana','America/Edmonton','America/Denver','America/Phoenix','America/Mazatlan',
-                                       'America/Winnipeg','America/Regina','America/Chicago','America/Mexico_City','America/Guatemala','America/El_Salvador',
-                                       'America/Managua','America/Costa_Rica','America/Montreal','America/New_York','America/Indianapolis','America/Panama',
-                                       'America/Bogota','America/Lima','America/Halifax','America/Puerto_Rico','America/Caracas','America/Santiago','America/St_Johns',
-                                       'America/Montevideo','America/Araguaina','America/Argentina/Buenos_Aires','America/Godthab','America/Sao_Paulo','Atlantic/Azores',
-                                       'Canada/Atlantic','Atlantic/Cape_Verde','UTC','Etc/Greenwich','Europe/Belgrade','CET','Atlantic/Reykjavik','Europe/Dublin','Europe/London',
-                                       'Europe/Lisbon','Africa/Casablanca','Africa/Nouakchott','Europe/Oslo','Europe/Copenhagen','Europe/Brussels','Europe/Berlin','Europe/Helsinki',
-                                       'Europe/Amsterdam','Europe/Rome','Europe/Stockholm','Europe/Vienna','Europe/Luxembourg','Europe/Paris','Europe/Zurich','Europe/Madrid','Africa/Bangui',
-                                       'Africa/Algiers','Africa/Tunis','Africa/Harare','Africa/Nairobi','Europe/Warsaw','Europe/Prague','Europe/Budapest','Europe/Sofia','Europe/Istanbul','Europe/Athens',
-                                       'Europe/Bucharest','Asia/Nicosia','Asia/Beirut','Asia/Damascus','Asia/Jerusalem','Asia/Amman','Africa/Tripoli','Africa/Cairo','Africa/Johannesburg','Europe/Moscow',
-                                       'Asia/Baghdad','Asia/Kuwait','Asia/Riyadh','Asia/Bahrain','Asia/Qatar','Asia/Aden','Asia/Tehran','Africa/Khartoum','Africa/Djibouti','Africa/Mogadishu','Asia/Dubai',
-                                       'Asia/Muscat','Asia/Baku','Asia/Kabul','Asia/Yekaterinburg','Asia/Tashkent','Asia/Calcutta','Asia/KathmanduAsia/Novosibirsk','Asia/Almaty','Asia/Dacca','Asia/Krasnoyarsk',
-                                       'Asia/Dhaka','Asia/Bangkok','Asia/Saigon','Asia/Jakarta','Asia/Irkutsk','Asia/Shanghai','Asia/Hong_Kong','Asia/Taipei','Asia/Kuala_Lumpur','Asia/Singapore','Australia/Perth',
-                                       'Asia/Yakutsk','Asia/Seoul','Asia/Tokyo','Australia/Darwin','Australia/Adelaide','Asia/Vladivostok','Pacific/Port_Moresby','Australia/Brisbane','Australia/Sydney','Australia/Hobart',
-                                       'Asia/Magadan','SST','Pacific/Noumea','Asia/Kamchatka','Pacific/Fiji','Pacific/Auckland','Asia/Kolkata','Europe/Kiev','America/Tegucigalpa','Pacific/Apia']:
-                   raise UserError("Zoom doesn't support timezone %s" % meeting.event_tz)
+                if meeting.event_tz not in ['Pacific/Midway', 'Pacific/Pago_Pago', 'Pacific/Honolulu',
+                                            'America/Anchorage', 'America/Vancouver',
+                                            'America/Los_Angeles', 'America/Tijuana', 'America/Edmonton',
+                                            'America/Denver', 'America/Phoenix', 'America/Mazatlan',
+                                            'America/Winnipeg', 'America/Regina', 'America/Chicago',
+                                            'America/Mexico_City', 'America/Guatemala', 'America/El_Salvador',
+                                            'America/Managua', 'America/Costa_Rica', 'America/Montreal',
+                                            'America/New_York', 'America/Indianapolis', 'America/Panama',
+                                            'America/Bogota', 'America/Lima', 'America/Halifax', 'America/Puerto_Rico',
+                                            'America/Caracas', 'America/Santiago', 'America/St_Johns',
+                                            'America/Montevideo', 'America/Araguaina', 'America/Argentina/Buenos_Aires',
+                                            'America/Godthab', 'America/Sao_Paulo', 'Atlantic/Azores',
+                                            'Canada/Atlantic', 'Atlantic/Cape_Verde', 'UTC', 'Etc/Greenwich',
+                                            'Europe/Belgrade', 'CET', 'Atlantic/Reykjavik', 'Europe/Dublin',
+                                            'Europe/London',
+                                            'Europe/Lisbon', 'Africa/Casablanca', 'Africa/Nouakchott', 'Europe/Oslo',
+                                            'Europe/Copenhagen', 'Europe/Brussels', 'Europe/Berlin', 'Europe/Helsinki',
+                                            'Europe/Amsterdam', 'Europe/Rome', 'Europe/Stockholm', 'Europe/Vienna',
+                                            'Europe/Luxembourg', 'Europe/Paris', 'Europe/Zurich', 'Europe/Madrid',
+                                            'Africa/Bangui',
+                                            'Africa/Algiers', 'Africa/Tunis', 'Africa/Harare', 'Africa/Nairobi',
+                                            'Europe/Warsaw', 'Europe/Prague', 'Europe/Budapest', 'Europe/Sofia',
+                                            'Europe/Istanbul', 'Europe/Athens',
+                                            'Europe/Bucharest', 'Asia/Nicosia', 'Asia/Beirut', 'Asia/Damascus',
+                                            'Asia/Jerusalem', 'Asia/Amman', 'Africa/Tripoli', 'Africa/Cairo',
+                                            'Africa/Johannesburg', 'Europe/Moscow',
+                                            'Asia/Baghdad', 'Asia/Kuwait', 'Asia/Riyadh', 'Asia/Bahrain', 'Asia/Qatar',
+                                            'Asia/Aden', 'Asia/Tehran', 'Africa/Khartoum', 'Africa/Djibouti',
+                                            'Africa/Mogadishu', 'Asia/Dubai',
+                                            'Asia/Muscat', 'Asia/Baku', 'Asia/Kabul', 'Asia/Yekaterinburg',
+                                            'Asia/Tashkent', 'Asia/Calcutta', 'Asia/KathmanduAsia/Novosibirsk',
+                                            'Asia/Almaty', 'Asia/Dacca', 'Asia/Krasnoyarsk',
+                                            'Asia/Dhaka', 'Asia/Bangkok', 'Asia/Saigon', 'Asia/Jakarta', 'Asia/Irkutsk',
+                                            'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Taipei', 'Asia/Kuala_Lumpur',
+                                            'Asia/Singapore', 'Australia/Perth',
+                                            'Asia/Yakutsk', 'Asia/Seoul', 'Asia/Tokyo', 'Australia/Darwin',
+                                            'Australia/Adelaide', 'Asia/Vladivostok', 'Pacific/Port_Moresby',
+                                            'Australia/Brisbane', 'Australia/Sydney', 'Australia/Hobart',
+                                            'Asia/Magadan', 'SST', 'Pacific/Noumea', 'Asia/Kamchatka', 'Pacific/Fiji',
+                                            'Pacific/Auckland', 'Asia/Kolkata', 'Europe/Kiev', 'America/Tegucigalpa',
+                                            'Pacific/Apia']:
+                    raise UserError("Zoom doesn't support timezone %s" % meeting.event_tz)
 
     @api.constrains('rrule_type')
     def _check_week_day(self):
         for meeting in self:
             if meeting.rrule_type == 'weekly':
-                    weekday_list = []
-                    weekday_list.append(self.mo)
-                    weekday_list.append(self.tu)
-                    weekday_list.append(self.th)
-                    weekday_list.append(self.we)
-                    weekday_list.append(self.fr)
-                    weekday_list.append(self.sa)
-                    weekday_list.append(self.su)
-                    flag = False
-                    for weekday in weekday_list:
-                        if weekday == True:
-                            flag = True
-                    if flag == False:
-                        raise UserError("Select atleast one day in week")
+                weekday_list = []
+                weekday_list.append(self.mo)
+                weekday_list.append(self.tu)
+                weekday_list.append(self.th)
+                weekday_list.append(self.we)
+                weekday_list.append(self.fr)
+                weekday_list.append(self.sa)
+                weekday_list.append(self.su)
+                flag = False
+                for weekday in weekday_list:
+                    if weekday == True:
+                        flag = True
+                if flag == False:
+                    raise UserError("Select atleast one day in week")
 
     @api.constrains('is_zoom_meeting')
     def _check_rrule_property(self):
@@ -288,9 +320,9 @@ class Meeting(models.Model):
         self.start_url = ''
         self.host_id = ''
         self.meeting_pswd = ''
-        self.zoom_occurrence_list=''
+        self.zoom_occurrence_list = ''
 
-    def _datetime_localize(self , date):
+    def _datetime_localize(self, date):
         """
         Convert utc time to local timezone.
         """
@@ -300,19 +332,21 @@ class Meeting(models.Model):
             is_var_str = isinstance(date, str)
             if is_var_str != True:
                 date = date.strftime("%Y-%m-%d %H:%M:%S")
-            display_date_result = datetime.strftime(pytz.utc.localize(datetime.strptime(date, DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(local), "%Y-%m-%d %H:%M:%S")
+            display_date_result = datetime.strftime(
+                pytz.utc.localize(datetime.strptime(date, DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(local),
+                "%Y-%m-%d %H:%M:%S")
             return display_date_result
         else:
             raise UserError("Please set user timezone")
 
-    def _datetime_localize_user_format(self , date):
+    def _datetime_localize_user_format(self, date):
         """
         Convert utc time to local timezone.
         """
         user_tz = self.env.user.tz
         if user_tz:
             local = pytz.timezone(user_tz)
-            user_lang = self.env['res.lang'].search([('code','=',self.env.user.lang)])
+            user_lang = self.env['res.lang'].search([('code', '=', self.env.user.lang)])
             if user_lang:
                 date_format_user = user_lang[0].date_format + ' ' + user_lang[0].time_format
             else:
@@ -320,7 +354,9 @@ class Meeting(models.Model):
             is_var_str = isinstance(date, str)
             if is_var_str != True:
                 date = date.strftime("%Y-%m-%d %H:%M:%S")
-            display_date_result = datetime.strftime(pytz.utc.localize(datetime.strptime(date, DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(local), date_format_user)
+            display_date_result = datetime.strftime(
+                pytz.utc.localize(datetime.strptime(date, DEFAULT_SERVER_DATETIME_FORMAT)).astimezone(local),
+                date_format_user)
             return display_date_result
         else:
             raise UserError("Please set user timezone")
@@ -346,14 +382,14 @@ class Meeting(models.Model):
             }
 
     @api.model
-    def create(self, values):
+    def _create(self, values):
         """
          Special context keys :
           - zoom_meeting_create,zoom_meet_unlink,zoom_create are restrict to access zoom api
         """
         self = self.with_context(zoom_meeting_create=True)
         res = super(Meeting, self).create(values)
-        if self._context.get('zoom_meet_unlink') == True or self._context.get('zoom_create')==True:
+        if self._context.get('zoom_meet_unlink') == True or self._context.get('zoom_create') == True:
             pass
         else:
             # Updating zoom meeting response to current record
@@ -364,14 +400,15 @@ class Meeting(models.Model):
                     # let UserErrors (messages) bubble up
                     raise e
                 except Exception as e:
-                    raise UserError(_('Zoom API Exception!1 \n %s') % e)
+                    raise UserError(_('Zoom API Exception! \n %s') % e)
                 res.start_url = data_dict['start_url']
                 res.join_url = data_dict['join_url']
                 res.meeting_id = data_dict['meeting_id']
-                occurrence_list=data_dict['occurrence_list']
+                occurrence_list = data_dict['occurrence_list']
                 records = self.env['calendar.event'].search([('meeting_id', '=', data_dict['meeting_id'])])
                 if occurrence_list:
-                    res.zoom_occurrence_list = self.get_zoom_occurrence_list(records,occurrence_list,res,res.meeting_id)
+                    res.zoom_occurrence_list = self.get_zoom_occurrence_list(records, occurrence_list, res,
+                                                                             res.meeting_id)
                 if data_dict['http_status'] == 201:
                     pass
                 else:
@@ -386,8 +423,7 @@ class Meeting(models.Model):
                         current_user = self.env.user
                         if res.attendee_ids:
                             to_notify = res.attendee_ids.filtered(lambda a: a.email != current_user.email)
-                            to_notify._send_mail_notiy_to_attendees(res,
-                                                                    'calendar.calendar_template_meeting_invitation')
+                            to_notify._send_mail_notiy_to_attendees(res,'calendar.calendar_template_meeting_invitation')
                         if res.external_participants:
                             for participant_id in res.external_participants:
                                 if participant_id.mail_sent != True:
@@ -396,9 +432,7 @@ class Meeting(models.Model):
                                     participant_id.mail_sent = True
         return res
 
-
-
-    def get_zoom_occurrence_list(self,records,occurrence_list,res_obj,meeting_id):
+    def get_zoom_occurrence_list(self, records, occurrence_list, res_obj, meeting_id):
         """
         :param occurrence_list: zoom recurrence meeting have occurence id which is stored in current record.
         :return: ocurrence list return.
@@ -432,7 +466,7 @@ class Meeting(models.Model):
                     if zoom_occurrence['occurrence_id'] == occurrence['occurrence_id']:
                         flag = True
                 if flag == False:
-                    client.meeting.delete(id = meeting_id, occurrence_id = occurrence['occurrence_id'])
+                    client.meeting.delete(id=meeting_id, occurrence_id=occurrence['occurrence_id'])
         return zoom_occurrence_list
 
     def create_zoom_meeting(self, res):
@@ -446,7 +480,7 @@ class Meeting(models.Model):
         user_id = self.env.user.zoom_login_user_id
         if user_id:
             if res.recurrency == True:
-                    meeting_type = 8
+                meeting_type = 8
             else:
                 meeting_type = 2
             duration = ''
@@ -507,9 +541,11 @@ class Meeting(models.Model):
                     final_datetime = datetime.strptime(final_datetime, "%Y-%m-%d")
                     final_datetime = datetime.combine(final_datetime, final_time)
                 final_datetime = final_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
-                final_datetime = self.convert_datetime_timezone(final_datetime,res.event_tz)
-                local=pytz.timezone(res.event_tz)
-                display_datetime = datetime.strftime(pytz.utc.localize(datetime.strptime(final_datetime, "%Y-%m-%dT%H:%M:%SZ")).astimezone(local), "%Y-%m-%dT%H:%M:%SZ")
+                final_datetime = self.convert_datetime_timezone(final_datetime, res.event_tz)
+                local = pytz.timezone(res.event_tz)
+                display_datetime = datetime.strftime(
+                    pytz.utc.localize(datetime.strptime(final_datetime, "%Y-%m-%dT%H:%M:%SZ")).astimezone(local),
+                    "%Y-%m-%dT%H:%M:%SZ")
                 display_datetime = datetime.strptime(display_datetime, "%Y-%m-%dT%H:%M:%SZ")
                 display_datetime = display_datetime + timedelta(minutes=duration)
                 if display_datetime.date() > final_date:
@@ -545,7 +581,7 @@ class Meeting(models.Model):
                     })
             start_datetime = res.start_datetime
             start_datetime_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
-            start_datetime = self.convert_datetime_timezone(start_datetime_str,res.event_tz)
+            start_datetime = self.convert_datetime_timezone(start_datetime_str, res.event_tz)
             start_datetime = datetime.strptime(start_datetime, "%Y-%m-%dT%H:%M:%SZ")
             kwargs = {
                 'topic': res.name,
@@ -610,11 +646,11 @@ class Meeting(models.Model):
                 client = ZoomClient(company_rec.api_key, company_rec.api_secret)
 
             except Exception as e:
-                raise UserError(_('API credential invalid',e))
+                raise UserError(_('API credential invalid', e))
             if self.env.user.zoom_login_email:
                 users = client.user.list()
                 if users.status_code == 200:
-                    user_response =json.loads(users.content.decode('utf-8'))
+                    user_response = json.loads(users.content.decode('utf-8'))
                     all_users = user_response['users']
                     zoom_user = False
                     for all_user in all_users:
@@ -642,7 +678,7 @@ class Meeting(models.Model):
             raise UserError(_(
                 'API credential invalid'))
 
-    def convert_to_datetime(self,date):
+    def convert_to_datetime(self, date):
         if date:
             is_var_str = isinstance(date, str)
             if str(is_var_str) == "True":
@@ -656,14 +692,14 @@ class Meeting(models.Model):
         """
 
         super(Meeting, self).write(values)
-        zoom_meeting=False
+        zoom_meeting = False
         for meeting in self:
             if values.get('is_zoom_meeting') and values['is_zoom_meeting'] or meeting.is_zoom_meeting == True:
-                if self.env.user.id != meeting.create_uid.id and self.env.user.id !=self.env.user.company_id.zoom_admin_user_id.id:
+                if self.env.user.id != meeting.create_uid.id and self.env.user.id != self.env.user.company_id.zoom_admin_user_id.id:
                     raise UserError("You didn't have permission to edit this meeting.")
 
                 zoom_meeting = True
-                rrule_type=values.get('rrule_type') and values['rrule_type'] or meeting.rrule_type
+                rrule_type = values.get('rrule_type') and values['rrule_type'] or meeting.rrule_type
                 if rrule_type == 'yearly':
                     raise UserError("Zoom doesn't support recurrence option Years")
 
@@ -672,14 +708,14 @@ class Meeting(models.Model):
                 if values.get('is_zoom_meeting') and values['is_zoom_meeting'] or meeting.is_zoom_meeting != True:
                     if self.env.user.company_id.meeting_event_mail_notification == True:
                         if (values.get('start_date') or values.get('start_datetime') or
-                                (values.get('start') and self.env.context.get('from_ui'))) and values.get('active', True):
+                            (values.get('start') and self.env.context.get('from_ui'))) and values.get('active', True):
                             for meeting in self:
                                 if meeting.attendee_ids:
                                     meeting.attendee_ids._send_mail_notiy_to_attendees(meeting,
                                                                                        'calendar.calendar_template_meeting_changedate')
         if zoom_meeting:
 
-            #zoom api call only if the api related field are updated
+            # zoom api call only if the api related field are updated
             field_changes = self.check_api_field_changes(values)
             if self._context.get('zoom_meet_unlink') == True or self._context.get(
                     'zoom_meeting_create') == True or self._context.get('zoom_write') == True or field_changes != True:
@@ -692,10 +728,10 @@ class Meeting(models.Model):
                         values.pop('external_participants')
                     self.zoom_write_update(http_status, occurrence_list, values)
                 except Exception as e:
-                    raise UserError(_('Zoom API Exception!2 \n %s') % e)
+                    raise UserError(_('Zoom API Exception! \n %s') % e)
 
                 recurrency_fields = self._get_recurrent_fields()
-                recurrency_change=False
+                recurrency_change = False
                 for field in recurrency_fields:
                     if values.get(field) != None:
                         recurrency_change = True
@@ -703,16 +739,19 @@ class Meeting(models.Model):
                 # Meeting updated notification send to attendees and external users
                 for meeting in self:
                     if self.env.user.company_id.meeting_event_mail_notification == True:
-                        if (values.get('is_zoom_meeting') and values['is_zoom_meeting']) or recurrency_change or values.get(
+                        if (values.get('is_zoom_meeting') and values[
+                            'is_zoom_meeting']) or recurrency_change or values.get(
                                 'meeting_pswd') or values.get('event_tz') or (
-                                values.get('start_date') or values.get('start_datetime') or  values.get('update_single_instance')==True or (
-                            values.get('start') and self.env.context.get('from_ui'))) and values.get('active', True) :
+                                values.get('start_date') or values.get('start_datetime') or values.get(
+                            'update_single_instance') == True or (
+                                        values.get('start') and self.env.context.get('from_ui'))) and values.get(
+                            'active', True):
                             if meeting.attendee_ids:
                                 meeting.attendee_ids._send_mail_notiy_to_attendees(meeting,
                                                                                    'calendar.calendar_template_meeting_changedate')
                             if meeting.external_participants:
                                 meeting.external_participants._send_mail_to_external_participants(meeting,
-                                                                                              'zoom_integration.calendar_template_zoom_external_user_meeting_changedate')
+                                                                                                  'zoom_integration.calendar_template_zoom_external_user_meeting_changedate')
         return True
 
     def zoom_write_update(self, http_status, occurrence_list, values):
@@ -729,21 +768,22 @@ class Meeting(models.Model):
             meeting_id = values.get('meeting_id')
             super(Meeting, self).write(values)
         records = self.env['calendar.event'].search([('meeting_id', '=', meeting_id)])
-        res_obj=self
-        zoom_occurrence_list=[]
+        res_obj = self
+        zoom_occurrence_list = []
         if occurrence_list:
-            zoom_occurrence_list = self.get_zoom_occurrence_list(records, occurrence_list,res_obj,meeting_id)
+            zoom_occurrence_list = self.get_zoom_occurrence_list(records, occurrence_list, res_obj, meeting_id)
         if http_status == 204 or 201:
             values.update({'zoom_occurrence_list': zoom_occurrence_list})
             return super(Meeting, self).write(values)
         else:
             if http_status == 429:
-                raise UserError("You have exceed the daily rate limit(100) of Meeting Create/Update API requests permitted."
-                                "for this particular user. Try again later or get paid license")
+                raise UserError(
+                    "You have exceed the daily rate limit(100) of Meeting Create/Update API requests permitted."
+                    "for this particular user. Try again later or get paid license")
 
             raise UserError("Something went wrong ! You can't update meeting")
 
-    def check_api_field_changes(self,values):
+    def check_api_field_changes(self, values):
         """
         :param values: zoom api call only if the api related field are updated.
         :return: api related fields updated return 'True'.
@@ -792,29 +832,28 @@ class Meeting(models.Model):
         name = values.get('name')
         meeting_pswd = values.get('meeting_pswd')
         description = values.get('description')
-        video_host=False
+        video_host = False
         if 'video_host' in values:
             video_host = True
-        enable_join_bf_host=False
+        enable_join_bf_host = False
         if 'enable_join_bf_host' in values:
             enable_join_bf_host = True
-        mute_participants_upon_entry=False
+        mute_participants_upon_entry = False
         if 'mute_participants_upon_entry' in values:
             mute_participants_upon_entry = True
-        video_participant=False
+        video_participant = False
         if 'video_participant' in values:
             video_participant = True
-        enable_waiting_room=False
+        enable_waiting_room = False
         if 'enable_waiting_room' in values:
             enable_waiting_room = True
         if is_zoom_meeting or recurrency or rrule_type or duration or auto_recording_val or event_tz or start_datetime or su or mo \
-            or tu or we or th or fr or sa or week_list or final_datetime or interval or end_type or count or month_by \
-            or day or  byday or name or meeting_pswd or description or video_host or enable_join_bf_host or mute_participants_upon_entry \
-            or video_participant or enable_waiting_room :
+                or tu or we or th or fr or sa or week_list or final_datetime or interval or end_type or count or month_by \
+                or day or byday or name or meeting_pswd or description or video_host or enable_join_bf_host or mute_participants_upon_entry \
+                or video_participant or enable_waiting_room:
             return True
         else:
             return False
-
 
     # Zoom meeting updation api
     def update_zoom_meeting(self, values):
@@ -826,7 +865,7 @@ class Meeting(models.Model):
         recurrency = values.get('recurrency') and values['recurrency'] or self.recurrency
         rrule_type = values.get('rrule_type') and values['rrule_type'] or self.rrule_type
         if recurrency == True:
-                meeting_type = 8
+            meeting_type = 8
         else:
             meeting_type = 2
         duration_in_min = ''
@@ -840,14 +879,14 @@ class Meeting(models.Model):
         event_tz = values.get('event_tz') and values['event_tz'] or self.event_tz
         real_id = calendar_id2real_id(self.id)
         meeting_origin = self.browse(real_id)
-        start_datetime=meeting_origin.start_datetime
-        final_time=''
+        start_datetime = meeting_origin.start_datetime
+        final_time = ''
         if start_datetime:
             is_var_str = isinstance(start_datetime, str)
             if str(is_var_str) == "True":
 
                 start_datetime = datetime.strptime(start_datetime, "%Y-%m-%d %H:%M:%S")
-                final_time =start_datetime.time()
+                final_time = start_datetime.time()
             else:
                 final_time = start_datetime.time()
         start_datetime_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -968,7 +1007,7 @@ class Meeting(models.Model):
         http_status = ''
         occurrence_list = {}
         if self.meeting_id:
-            response = client.meeting.get(id=self.meeting_id,show_previous_occurrences=True)
+            response = client.meeting.get(id=self.meeting_id, show_previous_occurrences=True)
             if response.status_code == 200:
                 result = client.meeting.update(id=self.meeting_id, **kwargs)
                 http_status = result.status_code
@@ -978,10 +1017,10 @@ class Meeting(models.Model):
                         "You have exceed the daily rate limit(100) of Meeting Create/Update API requests permitted."
                         "for this particular user. Try again later or get paid license")
                 raise UserError("Something went wrong ! You can't create meeting")
-            response = client.meeting.get(id=self.meeting_id,show_previous_occurrences=True)
+            response = client.meeting.get(id=self.meeting_id, show_previous_occurrences=True)
             get_result = json.loads(response.content.decode('utf-8'))
             values.update({'join_url': get_result.get('join_url'),
-                           'start_url': get_result.get('start_url'),})
+                           'start_url': get_result.get('start_url'), })
             occurrence_list = []
             if http_status == 204:
                 if get_result.get('occurrences'):
@@ -991,8 +1030,9 @@ class Meeting(models.Model):
             if user_id:
                 meeting_res = client.meeting.create(user_id=user_id, **kwargs)
                 http_status = meeting_res.status_code
-                if http_status ==400:
-                    raise UserError(_('Zoom API Exception:\n Invalid/Missing Data - Validation Failed on Meeting Values,Passwords...'))
+                if http_status == 400:
+                    raise UserError(_(
+                        'Zoom API Exception:\n Invalid/Missing Data - Validation Failed on Meeting Values,Passwords...'))
 
                 result = json.loads(meeting_res.content.decode('utf-8'))
                 if http_status == 201:
@@ -1006,7 +1046,6 @@ class Meeting(models.Model):
                                    'meeting_pswd': result.get('password')})
                     if get_result.get('occurrences'):
                         occurrence_list = get_result.get('occurrences')
-
 
                     return http_status, occurrence_list
                 else:
@@ -1038,33 +1077,39 @@ class Meeting(models.Model):
                 # records_to_unlink |= self.browse(int(meeting.id))
 
             # Meeting delete notification send to attendees and external users.
-            if meeting.is_zoom_meeting==True:
-                if self.env.user.id != meeting.create_uid.id and self.env.user.id !=self.env.user.company_id.zoom_admin_user_id.id:
+            if meeting.is_zoom_meeting == True:
+                if self.env.user.id != meeting.create_uid.id and self.env.user.id != self.env.user.company_id.zoom_admin_user_id.id:
                     raise UserError("You didn't have permission to cancel this meeting.")
                 date = self._datetime_localize(meeting.start_datetime or meeting.start_date)
                 self.delete_zoom_meeting(meeting)
-                if self.env.user.company_id.meeting_event_mail_notification == True and  self._context.get('no_invite_mail')!=True :
+                if self.env.user.company_id.meeting_event_mail_notification == True and self._context.get(
+                        'no_invite_mail') != True:
                     if meeting.attendee_ids:
                         for attendee_id in meeting.attendee_ids:
                             mail_template_1 = self.env.ref('zoom_integration.unlink_meeting_notification_to_attendees')
-                            mail_template_1.with_context(date=date).send_mail(attendee_id.id, force_send=True,notif_layout='mail.mail_notification_light')
+                            mail_template_1.with_context(date=date).send_mail(attendee_id.id, force_send=True,
+                                                                              notif_layout='mail.mail_notification_light')
                     if meeting.external_participants:
                         for participant_id in meeting.external_participants:
-                            mail_template_2 = self.env.ref('zoom_integration.unlink_meeting_notification_to_external_users')
-                            mail_template_2.with_context(date=date).send_mail(participant_id.id, force_send=True,notif_layout='mail.mail_notification_light')
+                            mail_template_2 = self.env.ref(
+                                'zoom_integration.unlink_meeting_notification_to_external_users')
+                            mail_template_2.with_context(date=date).send_mail(participant_id.id, force_send=True,
+                                                                              notif_layout='mail.mail_notification_light')
 
         result = False
         if records_to_unlink:
             result = super(Meeting, records_to_unlink).unlink()
         if records_to_exclude:
-            result = records_to_exclude.with_context(dont_notify=True, zoom_meet_unlink=True).write({'active': False,'is_zoom_meeting':False,'meeting_id':'','join_url': '','start_url': '','host_id': '','meeting_pswd':'','zoom_occurrence_list':''})
+            result = records_to_exclude.with_context(dont_notify=True, zoom_meet_unlink=True).write(
+                {'active': False, 'is_zoom_meeting': False, 'meeting_id': '', 'join_url': '', 'start_url': '',
+                 'host_id': '', 'meeting_pswd': '', 'zoom_occurrence_list': ''})
         # Notify the concerned attendees (must be done after removing the events)
         self.env['calendar.alarm_manager']._notify_next_alarm(partner_ids)
 
         return result
 
     # zoom meeting deletion api
-    def delete_zoom_meeting(self,meeting):
+    def delete_zoom_meeting(self, meeting):
         """
             Zoom meeting deletion api : using python SDK.
         """
@@ -1072,22 +1117,23 @@ class Meeting(models.Model):
         try:
             client = self.jwt_api_access()
             if meeting.meeting_id:
-                zoom_occurrence_list=[]
-                if meeting.zoom_occurrence_list :
-                    zoom_occurrence_list=literal_eval(meeting.zoom_occurrence_list)
+                zoom_occurrence_list = []
+                if meeting.zoom_occurrence_list:
+                    zoom_occurrence_list = literal_eval(meeting.zoom_occurrence_list)
                 if zoom_occurrence_list:
-                        for occurrence in literal_eval(meeting.zoom_occurrence_list):
-                            if occurrence['id'] == meeting.id:
-                                response = client.meeting.get(id=meeting.meeting_id,occurrence_id=occurrence['occurrence_id'])
-                                if response.status_code == 200:
-                                    client.meeting.delete(id=meeting.meeting_id,occurrence_id=occurrence['occurrence_id'])
+                    for occurrence in literal_eval(meeting.zoom_occurrence_list):
+                        if occurrence['id'] == meeting.id:
+                            response = client.meeting.get(id=meeting.meeting_id,
+                                                          occurrence_id=occurrence['occurrence_id'])
+                            if response.status_code == 200:
+                                client.meeting.delete(id=meeting.meeting_id, occurrence_id=occurrence['occurrence_id'])
                 else:
-                    response = client.meeting.get(id=meeting.meeting_id,show_previous_occurrences=True)
+                    response = client.meeting.get(id=meeting.meeting_id, show_previous_occurrences=True)
                     if response.status_code == 200:
                         client.meeting.delete(id=meeting.meeting_id)
 
         except Exception as e:
-            raise UserError(_('Zoom API Exception!3 \n %s') % e)
+            raise UserError(_('Zoom API Exception! \n %s') % e)
 
     def cancel_meeting(self):
         self.unlink()
@@ -1097,7 +1143,8 @@ class Meeting(models.Model):
             form_view_id = self.env.ref('zoom_integration.action_zoom_calendar_event').id
             return {
                 'type': 'ir.actions.act_url',
-                'url': '/web#action=%s&model=calendar.event&view_type=list&cids=&menu_id=%s' %(form_view_id,list_view_id),
+                'url': '/web#action=%s&model=calendar.event&view_type=list&cids=&menu_id=%s' % (
+                form_view_id, list_view_id),
                 'target': 'self',
 
             }
@@ -1106,18 +1153,19 @@ class Meeting(models.Model):
             form_view_id = self.env.ref('calendar.action_calendar_event').id
             return {
                 'type': 'ir.actions.act_url',
-                'url': '/web#action=%s&model=calendar.event&view_type=list&cids=&menu_id=%s' % (form_view_id, list_view_id),
+                'url': '/web#action=%s&model=calendar.event&view_type=list&cids=&menu_id=%s' % (
+                form_view_id, list_view_id),
                 'target': 'self',
 
             }
 
-    def convert_datetime_timezone(self,date, event_tz):
+    def convert_datetime_timezone(self, date, event_tz):
         """
         :param date: converted date
         :param event_tz: current meeting timezone.
         :return: date convert current meeting timezone to zoom user timezone
         """
-        if event_tz and  self.env.user.zoom_user_timezone:
+        if event_tz and self.env.user.zoom_user_timezone:
             tz1 = pytz.timezone(event_tz)
             tz2 = pytz.timezone(self.env.user.zoom_user_timezone)
 
@@ -1127,7 +1175,7 @@ class Meeting(models.Model):
                 date = date.astimezone(tz2)
                 date = date.strftime("%Y-%m-%dT%H:%M:%SZ")
             else:
-                date=datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
+                date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
                 date = date.strftime("%Y-%m-%dT%H:%M:%SZ")
             return date
         else:
@@ -1142,10 +1190,11 @@ class Meeting(models.Model):
         if email:
             for meeting in self:
                 to_notify = meeting.attendee_ids.filtered(lambda a: a.email != current_user.email)
-                to_notify._send_mail_notiy_to_attendees(meeting,'calendar.calendar_template_meeting_invitation')
+                to_notify._send_mail_notiy_to_attendees(meeting, 'calendar.calendar_template_meeting_invitation')
         if self.external_participants:
             for meeting in self:
-                meeting.external_participants._send_mail_to_external_participants(meeting,'zoom_integration.calendar_template_external_user_meeting_invitation')
+                meeting.external_participants._send_mail_to_external_participants(meeting,
+                                                                                  'zoom_integration.calendar_template_external_user_meeting_invitation')
         return True
 
     def create_attendees(self):
@@ -1171,16 +1220,17 @@ class Meeting(models.Model):
 
                 meeting_attendees |= attendee
                 meeting_partners |= partner
-            if self.env.user.company_id.meeting_event_mail_notification == True and self._context.get('zoom_meeting_create') != True and self._context.get('no_invite_mail')!=True:
-                    if meeting_attendees and not self._context.get('detaching'):
-                        to_notify = meeting_attendees.filtered(lambda a: a.email != current_user.email)
-                        to_notify._send_mail_notiy_to_attendees(meeting,'calendar.calendar_template_meeting_invitation')
-                    if meeting.external_participants and not self._context.get('detaching'):
-                        for participant_id in meeting.external_participants:
-                            if participant_id.mail_sent != True:
-                                participant_id._send_mail_to_external_participants(meeting,
-                                                                                   'zoom_integration.calendar_template_external_user_meeting_invitation')
-                                participant_id.mail_sent = True
+            if self.env.user.company_id.meeting_event_mail_notification == True and self._context.get(
+                    'zoom_meeting_create') != True and self._context.get('no_invite_mail') != True:
+                if meeting_attendees and not self._context.get('detaching'):
+                    to_notify = meeting_attendees.filtered(lambda a: a.email != current_user.email)
+                    to_notify._send_mail_notiy_to_attendees(meeting, 'calendar.calendar_template_meeting_invitation')
+                if meeting.external_participants and not self._context.get('detaching'):
+                    for participant_id in meeting.external_participants:
+                        if participant_id.mail_sent != True:
+                            participant_id._send_mail_to_external_participants(meeting,
+                                                                               'zoom_integration.calendar_template_external_user_meeting_invitation')
+                            participant_id.mail_sent = True
             if meeting_attendees:
                 meeting.write({'attendee_ids': [(4, meeting_attendee.id) for meeting_attendee in meeting_attendees]})
 
@@ -1207,7 +1257,6 @@ class Meeting(models.Model):
             }
         return result
 
-
     # Remove zoom meeting
     def action_remove_zoom_meeting(self):
         for meeting in self:
@@ -1216,16 +1265,16 @@ class Meeting(models.Model):
             try:
 
                 client = self.jwt_api_access()
-                response = client.meeting.get(id=meeting.meeting_id,show_previous_occurrences=True)
+                response = client.meeting.get(id=meeting.meeting_id, show_previous_occurrences=True)
                 if response.status_code == 200:
                     client.meeting.delete(id=meeting.meeting_id)
 
             except Exception as e:
-                raise UserError(_('Zoom API Exception!4 \n %s') % e)
+                raise UserError(_('Zoom API Exception! \n %s') % e)
             meeting.with_context(zoom_write=True).write({'meeting_id': '', 'join_url': '',
-                                                      'start_url': '', 'zoom_occurrence_list': '',
-                                                      'host_id': '',
-                                                      'meeting_pswd': '', 'is_zoom_meeting': False})
+                                                         'start_url': '', 'zoom_occurrence_list': '',
+                                                         'host_id': '',
+                                                         'meeting_pswd': '', 'is_zoom_meeting': False})
             if meeting.attendee_ids:
                 meeting.attendee_ids._send_mail_notiy_to_attendees(meeting,
                                                                    'calendar.calendar_template_meeting_changedate')
@@ -1233,22 +1282,21 @@ class Meeting(models.Model):
                 meeting.external_participants._send_mail_to_external_participants(meeting,
                                                                                   'zoom_integration.calendar_template_zoom_external_user_meeting_changedate')
 
-
     def action_link_zoom_meeting(self):
         """
         :return: Link current meeting to zoom
         """
         for meeting in self:
             if meeting.allday != True:
-               if meeting.rrule_type != 'yearly':
+                if meeting.rrule_type != 'yearly':
                     if meeting.start and meeting.stop:
                         meeting.start_date = meeting.start
                         meeting.stop_date = meeting.stop
                         meeting._onchange_zoom_meeting()
                         meeting._compute_display_time()
                     meeting.is_zoom_meeting = True
-               else:
-                   raise UserError(_("Zoom doesn't support recurrence option Years"))
+                else:
+                    raise UserError(_("Zoom doesn't support recurrence option Years"))
             else:
                 raise UserError(_('You cannot link this event to zoom'))
 
@@ -1259,7 +1307,6 @@ class Meeting(models.Model):
             self = self.with_context(tz=tz)
         return self._get_display_time(self.start, self.stop, self.duration, self.allday)
 
-
     def detach_recurring_event(self, values=None):
         """ Detach a virtual recurring event by duplicating the original and change reccurent values
             :param values : dict of value to override on the detached event
@@ -1268,8 +1315,8 @@ class Meeting(models.Model):
             values = {}
         real_id = calendar_id2real_id(self.id)
         meeting_origin = self.browse(real_id)
-        data = self.read(['allday', 'start','stop','rrule', 'duration'])[0]
-        if meeting_origin.is_zoom_meeting != True or self._context.get('zoom_meet_unlink')==True:
+        data = self.read(['allday', 'start', 'stop', 'rrule', 'duration'])[0]
+        if meeting_origin.is_zoom_meeting != True or self._context.get('zoom_meet_unlink') == True:
             if data.get('rrule'):
                 data.update(
                     values,
@@ -1286,64 +1333,64 @@ class Meeting(models.Model):
                 # do not copy the id
                 if data.get('id'):
                     del data['id']
-                return meeting_origin.with_context(detaching=True,zoom_create=True,zoom_write=True).copy(default=data)
+                return meeting_origin.with_context(detaching=True, zoom_create=True, zoom_write=True).copy(default=data)
         else:
             if self.env.user.id != meeting_origin.create_uid.id and self.env.user.id != self.env.user.company_id.zoom_admin_user_id.id:
                 raise UserError("You didn't have permission to remove zoom meeting.")
             meeting_dict = meeting_origin.copy_data()[0]
             participant_list = []
             for participant_id in meeting_origin.external_participants:
-                participant_dict={
-                    'name' : participant_id.name,
+                participant_dict = {
+                    'name': participant_id.name,
                     'email': participant_id.email
                 }
-                participant_list.append((0,0,participant_dict))
+                participant_list.append((0, 0, participant_dict))
 
             meeting_dict.update({
                 'recurrent_id': real_id,
                 'recurrent_id_date': data.get('start'),
-                'start':data.get('start'),
-                'stop':data.get('stop'),
+                'start': data.get('start'),
+                'stop': data.get('stop'),
                 'rrule_type': False,
                 'rrule': '',
                 'recurrency': False,
                 'final_date': False,
                 'end_type': False,
-                'zoom_occurrence_list':'',
-                'meeting_id':'',
-                'start_url':'',
-                'join_url':'',
-                'update_single_instance' : True,
-                'external_participants' : participant_list
-
+                'zoom_occurrence_list': '',
+                'meeting_id': '',
+                'start_url': '',
+                'join_url': '',
+                'update_single_instance': True,
+                'external_participants': participant_list
 
             })
             data = self.read(['start'])[0]
 
-            meeting=meeting_origin.with_context(detaching=True,zoom_write=True,no_invite_mail=True).copy(default=meeting_dict)
+            meeting = meeting_origin.with_context(detaching=True, zoom_write=True, no_invite_mail=True).copy(
+                default=meeting_dict)
             client = self.jwt_api_access()
 
             # Updating zoom occurrence in current record.
             if meeting_origin.zoom_occurrence_list:
-                zoom_occurrence_list=literal_eval(meeting_origin.zoom_occurrence_list)
+                zoom_occurrence_list = literal_eval(meeting_origin.zoom_occurrence_list)
                 for occurrence in range(len(zoom_occurrence_list) - 1, -1, -1):
                     if zoom_occurrence_list[occurrence]['id'] == data['id']:
-                        occurrence_id=zoom_occurrence_list[occurrence]['occurrence_id']
+                        occurrence_id = zoom_occurrence_list[occurrence]['occurrence_id']
                         zoom_occurrence_list.pop(occurrence)
                         try:
-                            response = client.meeting.get(id=meeting_origin.meeting_id,occurrence_id=occurrence_id)
+                            response = client.meeting.get(id=meeting_origin.meeting_id, occurrence_id=occurrence_id)
                             if response.status_code == 200:
-                                client.meeting.delete(id=meeting_origin.meeting_id,occurrence_id=occurrence_id)
+                                client.meeting.delete(id=meeting_origin.meeting_id, occurrence_id=occurrence_id)
 
                         except Exception as e:
-                            raise UserError(_('Zoom API Exception!5 \n %s') % e)
-                meeting_origin.with_context(zoom_write=True).write({'zoom_occurrence_list':zoom_occurrence_list})
+                            raise UserError(_('Zoom API Exception! \n %s') % e)
+                meeting_origin.with_context(zoom_write=True).write({'zoom_occurrence_list': zoom_occurrence_list})
             if data.get('id'):
                 del data['id']
 
             return meeting
 
-    def get_date(self,date, interval, tz=None):
+    def get_date(self, date, interval, tz=None):
         """ Format and localize some dates to be used in email templates
             :param string interval: Among 'day', 'month', 'dayname' and 'time' indicating the desired formatting
             :param string tz: Timezone indicator (optional)
@@ -1388,8 +1435,7 @@ class ZoomMeetExternalParticipant(models.Model):
     send_mail = fields.Boolean('Send Invitation', default=True)
     mail_sent = fields.Boolean('Invitation Sent', readonly=True, default=False)
 
-
-    def _send_mail_to_external_participants(self,meeting, template_xmlid, force_send=True):
+    def _send_mail_to_external_participants(self, meeting, template_xmlid, force_send=True):
         """ Send mail for event invitation to event Participants.
             :param template_xmlid: xml id of the email template to use to send the invitation
             :param force_send: if set to True, the mail(s) will be sent immediately (instead of the next queue processing)
@@ -1439,8 +1485,10 @@ class ZoomMeetExternalParticipant(models.Model):
                                 'mimetype': 'text/calendar',
                                 'datas': base64.b64encode(ics_file)})
                     ]
-                mail_ids.append(invitation_template.with_context(date = meeting.start_datetime or meeting.start_date).send_mail(participant.id, email_values=email_values,
-                                                              notif_layout='mail.mail_notification_light'))
+                mail_ids.append(
+                    invitation_template.with_context(date=meeting.start_datetime or meeting.start_date).send_mail(
+                        participant.id, email_values=email_values,
+                        notif_layout='mail.mail_notification_light'))
         if force_send and mail_ids:
             res = self.env['mail.mail'].browse(mail_ids).send()
 
@@ -1457,15 +1505,18 @@ class AlarmManager(models.AbstractModel):
         result = False
         if meeting.create_uid.company_id.meeting_event_mail_notification == True:
             if alarm.alarm_type == 'email':
-                    result_1 = meeting.attendee_ids.filtered(lambda r: r.state != 'declined')._send_mail_notiy_to_attendees(meeting,
-                        'calendar.calendar_template_meeting_reminder', force_send=True)
-                    result_2 = meeting.external_participants._send_mail_to_external_participants(meeting,
-                        'zoom_integration.calendar_template_zoom_external_user_meeting_reminder', force_send=True)
+                result_1 = meeting.attendee_ids.filtered(lambda r: r.state != 'declined')._send_mail_notiy_to_attendees(
+                    meeting,
+                    'calendar.calendar_template_meeting_reminder', force_send=True)
+                result_2 = meeting.external_participants._send_mail_to_external_participants(meeting,
+                                                                                             'zoom_integration.calendar_template_zoom_external_user_meeting_reminder',
+                                                                                             force_send=True)
 
-                    if result_1 == True and result_2 == True:
-                        result = True
+                if result_1 == True and result_2 == True:
+                    result = True
 
         return result
+
 
 class Attendee(models.Model):
     """ Calendar Attendee Information """
@@ -1473,9 +1524,9 @@ class Attendee(models.Model):
     _inherit = 'calendar.attendee'
 
     def _send_mail_to_attendees(self, template_xmlid, force_send=False):
-         pass
-    
-    def _send_mail_notiy_to_attendees(self,meeting,template_xmlid, force_send=True):
+        pass
+
+    def _send_mail_notiy_to_attendees(self, meeting, template_xmlid, force_send=True):
         """ Send mail for event invitation to event attendees.
             :param template_xmlid: xml id of the email template to use to send the invitation
             :param force_send: if set to True, the mail(s) will be sent immediately (instead of the next queue processing)
@@ -1504,7 +1555,8 @@ class Attendee(models.Model):
             'color': colors,
             'action_id': self.env['ir.actions.act_window'].search([('view_id', '=', calendar_view.id)], limit=1).id,
             'dbname': self._cr.dbname,
-            'base_url': self.env['ir.config_parameter'].sudo().get_param('web.base.url', default='http://localhost:8069')
+            'base_url': self.env['ir.config_parameter'].sudo().get_param('web.base.url',
+                                                                         default='http://localhost:8069')
         })
         invitation_template = invitation_template.with_context(rendering_context)
 
@@ -1525,15 +1577,12 @@ class Attendee(models.Model):
                                 'mimetype': 'text/calendar',
                                 'datas': base64.b64encode(ics_file)})
                     ]
-                mail_ids.append(invitation_template.with_context(date = meeting.start_datetime or meeting.start_date).send_mail(attendee.id, email_values=email_values,
-                                                              notif_layout='mail.mail_notification_light'))
+                mail_ids.append(
+                    invitation_template.with_context(date=meeting.start_datetime or meeting.start_date).send_mail(
+                        attendee.id, email_values=email_values,
+                        notif_layout='mail.mail_notification_light'))
 
         if force_send and mail_ids:
             res = self.env['mail.mail'].browse(mail_ids).send()
 
         return res
-
-
-
-
-
