@@ -219,14 +219,14 @@ class SurveyQuestion(models.Model):
         if self.constr_mandatory and not answer:
             errors.update({answer_tag: self.constr_error_msg})
         # Checks if user input is a number
-        if answer:
-            try:
-                floatanswer = float(answer)
-            except ValueError:
-                errors.update({answer_tag: _('This is not a number')})
+#         if answer:
+#             try:
+#                 floatanswer = float(answer)
+#             except ValueError:
+#                 errors.update({answer_tag: _('This is not a number')})
                 
         if answer and self.validation_mobile:
-            if not email_validator.match(answer):
+            if not mobile_validator.match(answer):
                 errors.update({answer_tag: _('This answer must be a mobile number')})
                 
         # Answer validation (if properly defined)
