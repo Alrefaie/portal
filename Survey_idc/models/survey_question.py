@@ -9,7 +9,7 @@ from odoo import api, fields, models, tools, _
 from odoo.exceptions import ValidationError
 
 email_validator = re.compile(r"[^@]+@[^@]+\.[^@]+")
-mobile_validator = re.compile(r'(^[+0-9]{1,3})*([0-9]{10,11}$)')
+mobile_validator = re.compile(r'(^[0-9]{1,3})*([0-9]{10,11}$)')
 _logger = logging.getLogger(__name__)
 
 
@@ -90,8 +90,7 @@ class SurveyQuestion(models.Model):
         ('datetime', 'Datetime'),
         ('simple_choice', 'Multiple choice: only one answer'),
         ('multiple_choice', 'Multiple choice: multiple answers allowed'),
-        ('matrix', 'Matrix'),
-        ('mobile', 'Mobile')], string='Question Type')
+        ('matrix', 'Matrix')], string='Question Type')
     # simple choice / multiple choice / matrix
     labels_ids = fields.One2many(
         'survey.label', 'question_id', string='Types of answers', copy=True,
@@ -219,11 +218,11 @@ class SurveyQuestion(models.Model):
         if self.constr_mandatory and not answer:
             errors.update({answer_tag: self.constr_error_msg})
         # Checks if user input is a number
-#         if answer:
-#             try:
-#                 floatanswer = float(answer)
-#             except ValueError:
-#                 errors.update({answer_tag: _('This is not a number')})
+        if answer:
+            try:
+                floatanswer = float(answer)
+            except ValueError:
+                errors.update({answer_tag: _('This is not a number')})
                 
         if answer and self.validation_mobile:
             if not mobile_validator.match(answer):
@@ -344,20 +343,6 @@ class SurveyQuestion(models.Model):
                 errors.update({answer_tag: self.constr_error_msg})
         return errors
     
-    def validate_mobile(self, post, answer_tag):
-        self.ensure_one()
-        errors = {}
-        answer = post[answer_tag].strip()
-        # Empty answer to mandatory question
-        if self.constr_mandatory and not answer:
-            errors.update({answer_tag: self.constr_error_msg})
-        # Checks if user input is a number
-        if answer and self.validation_mobile:
-            if not mobile_validator.match(answer):
-                errors.update({answer_tag: _('This answer must be a mobile number')})
-        # Answer validation (if properly defined)
-        return errors
-
     @api.depends('survey_id.question_and_page_ids.is_page', 'survey_id.question_and_page_ids.sequence')
     def _compute_question_ids(self):
         """Will take all questions of the survey for which the index is higher than the index of this page
