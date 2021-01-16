@@ -224,6 +224,11 @@ class SurveyQuestion(models.Model):
                 floatanswer = float(answer)
             except ValueError:
                 errors.update({answer_tag: _('This is not a number')})
+                
+        if answer and self.validation_mobile:
+            if not email_validator.match(answer):
+                errors.update({answer_tag: _('This answer must be a mobile number')})
+                
         # Answer validation (if properly defined)
         if answer and self.validation_required:
             # Answer is not in the right range
