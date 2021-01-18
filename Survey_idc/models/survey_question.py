@@ -90,7 +90,8 @@ class SurveyQuestion(models.Model):
         ('datetime', 'Datetime'),
         ('simple_choice', 'Multiple choice: only one answer'),
         ('multiple_choice', 'Multiple choice: multiple answers allowed'),
-        ('matrix', 'Matrix')], string='Question Type')
+        ('matrix', 'Matrix'),
+        ('country_list','Country')], string='Question Type')
     # simple choice / multiple choice / matrix
     labels_ids = fields.One2many(
         'survey.label', 'question_id', string='Types of answers', copy=True,
