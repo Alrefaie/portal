@@ -81,7 +81,7 @@
 
     <template id="address_field" name="Address Field">
         <div class="row mt8">
-            <div class="col-md-12">
+            <!--div class="col-md-12">
                 <input type="text" placeholder="Street" class="form-control" t-att-name="prefix + '_street'"/>
             </div>
         </div>
@@ -110,7 +110,7 @@
             <div class="col-sm-4">
                 <input type="number" placeholder="Zip" class="form-control" t-att-name="prefix + '_zip'"/>
             </div>
-        </div>
+        </div-->
         <div class="row mt8">
             <div class="col-sm-12">
                 <t t-set="records" t-value="question.env['res.country'].search([])" />
