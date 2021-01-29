@@ -29,7 +29,7 @@ class OpAttendanceRegister(models.Model):
     _order = "id DESC"
 
     name = fields.Char(
-        'Name', size=16, required=True, track_visibility='onchange')
+        'Name', required=True, track_visibility='onchange')#, size=16
     code = fields.Char(
         'Code', size=16, required=True, track_visibility='onchange')
     course_id = fields.Many2one(
